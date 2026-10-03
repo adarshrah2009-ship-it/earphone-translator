@@ -8,7 +8,7 @@ st.set_page_config(page_title="Live Earphone Translator", page_icon="🎧", layo
 
 st.title("🎧 Live Earphone Translator")
 
-# 1. API Key Setup
+# 1. Check API Key
 api_key = os.environ.get("GEMINI_API_KEY")
 if not api_key:
     api_key = st.text_input("Enter Gemini API Key:", type="password")
@@ -28,7 +28,7 @@ with col2:
 
 st.markdown("---")
 
-# 3. Audio Recorder
+# 3. Mic Audio Recorder
 st.subheader("🎤 Speak into Microphone")
 audio_record = mic_recorder(
     start_prompt="▶️ Start Recording",
@@ -39,21 +39,20 @@ audio_record = mic_recorder(
 if audio_record and "bytes" in audio_record:
     audio_bytes = audio_record["bytes"]
     
-    # Preview recorded mic audio
     st.write("🎙️ **Recorded Audio:**")
     st.audio(audio_bytes, format="audio/wav")
     
     with st.spinner("Translating..."):
         try:
-            # Send audio input to Gemini with prompt requesting both TEXT and AUDIO output
             prompt = (
                 f"You are a real-time translator. Listen to this audio (spoken in {source_lang}). "
                 f"Translate it directly into {target_lang}. "
-                f"Provide the translated text and speak it aloud clearly."
+                f"Provide the translated text transcript and speak it back clearly."
             )
 
+            # Using gemini-2.0-flash model for reliable audio generation
             response = client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-2.0-flash",
                 contents=[
                     types.Part.from_bytes(data=audio_bytes, mime_type="audio/wav"),
                     prompt
@@ -63,7 +62,6 @@ if audio_record and "bytes" in audio_record:
                 )
             )
 
-            # Extract response components
             translated_text = ""
             audio_found = False
 
@@ -80,7 +78,7 @@ if audio_record and "bytes" in audio_record:
                 st.info(f"💬 **Translated Text:** {translated_text}")
 
             if not audio_found and not translated_text:
-                st.warning("Gemini received the audio but returned no output. Try speaking louder or longer.")
+                st.warning("Gemini received audio but returned no translation. Speak louder or longer (3–5 seconds).")
 
         except Exception as e:
             st.error(f"Translation Error: {e}")
